@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>엔비디아 (NVDA) 최근 1개월 주식 대시보드</title>
+  <!-- Chart.js UMD -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-hover: #24344d;
+      --primary: #10b981;
+      --primary-dim: rgba(16, 185, 129, 0.12);
+      --nvidia-green: #76b900;
+      --down-red: #ef4444;
+      --down-dim: rgba(239, 68, 68, 0.12);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --badge-fact: #0284c7;
+      --badge-ai: #8b5cf6;
+      --badge-check: #f59e0b;
+      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      line-height: 1.6;
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Print / Utility Toolbar */
+    .action-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 12px 18px;
+      border-radius: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .toolbar-info {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--nvidia-green);
+      color: #000;
+    }
+    .btn-primary:hover {
+      background: #87d300;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: #f8fafc;
+      border-color: #475569;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    /* Disclaimer Top Banner */
+    .banner-disclaimer {
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.15), rgba(139, 92, 246, 0.15));
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 0.86rem;
+      color: #fde68a;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .banner-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 0.74rem;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      font-weight: 700;
+      display: inline-block;
+    }
+
+    .tag-ai { background: var(--badge-ai); color: #fff; }
+    .tag-saved { background: #0284c7; color: #fff; }
+    .tag-warning { background: var(--badge-check); color: #1e1e2e; }
+
+    /* Header */
+    header.dashboard-header {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    @media (min-width: 768px) {
+      header.dashboard-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
+
+    .company-title-area {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .nvidia-logo-badge {
+      width: 52px;
+      height: 52px;
+      background: #000;
+      border: 2px solid var(--nvidia-green);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 1.5rem;
+      color: var(--nvidia-green);
+      flex-shrink: 0;
+    }
+
+    .company-titles h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .company-meta {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .chip {
+      background: #0f172a;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    /* Price highlight */
+    .price-summary-box {
+      text-align: left;
+    }
+
+    @media (min-width: 768px) {
+      .price-summary-box {
+        text-align: right;
+      }
+    }
+
+    .latest-price {
+      font-size: 2.3rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      justify-content: flex-start;
+      color: #ffffff;
+    }
+
+    @media (min-width: 768px) {
+      .latest-price {
+        justify-content: flex-end;
+      }
+    }
+
+    .price-currency {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .price-change {
+      font-size: 0.96rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+
+    .change-down {
+      color: var(--down-red);
+      background: var(--down-dim);
+    }
+
+    /* Meta Stat Bar */
+    .meta-bar {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    @media (min-width: 768px) {
+      .meta-bar {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .stat-card .label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stat-card .value {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .stat-card .subtext {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Section Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      page-break-inside: avoid;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Badges */
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+      display: inline-block;
+    }
+
+    .badge-fact {
+      background: rgba(2, 132, 199, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(2, 132, 199, 0.4);
+    }
+
+    .badge-ai {
+      background: rgba(139, 92, 246, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+    }
+
+    .badge-unverified {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    /* Chart Area */
+    .chart-container {
+      position: relative;
+      height: 320px;
+      width: 100%;
+    }
+
+    @media (max-width: 600px) {
+      .chart-container {
+        height: 260px;
+      }
+    }
+
+    .chart-note {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+      text-align: right;
+    }
+
+    /* Standalone SVG Chart Fallback */
+    .svg-chart-wrapper {
+      display: none;
+      width: 100%;
+    }
+
+    /* Analysis Grid */
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 768px) {
+      .analysis-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .analysis-item {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .analysis-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .analysis-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text-main);
+    }
+
+    .analysis-desc {
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.55;
+    }
+
+    /* Beginner Glossary Guide */
+    .glossary-box {
+      background: rgba(118, 185, 0, 0.08);
+      border: 1px solid rgba(118, 185, 0, 0.25);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 14px;
+    }
+
+    .glossary-title {
+      font-weight: 700;
+      color: #a3e635;
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .glossary-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      font-size: 0.84rem;
+      color: #e2e8f0;
+    }
+
+    @media (min-width: 768px) {
+      .glossary-list {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Checkpoints Checklist */
+    .check-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .check-item {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .check-icon {
+      font-size: 1.25rem;
+      line-height: 1;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .check-content h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .check-content p {
+      font-size: 0.86rem;
+      color: #cbd5e1;
+    }
+
+    /* Modal for PDF Instructions */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 16px;
+      max-width: 560px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-body {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+
+    .step-list {
+      margin-top: 12px;
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .step-list strong {
+      color: #38bdf8;
+    }
+
+    .modal-footer {
+      margin-top: 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Footer */
+    footer.dashboard-footer {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      page-break-inside: avoid;
+    }
+
+    .footer-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 8px;
+    }
+
+    .footer-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .legend-box {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    a.ext-link {
+      color: #38bdf8;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* PRINT STYLES */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 12mm 10mm;
+      }
+
+      body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        padding: 0 !important;
+        font-size: 10pt;
+      }
+
+      .container {
+        max-width: 100% !important;
+        gap: 12px !important;
+      }
+
+      .action-toolbar, .modal-backdrop, .chart-note {
+        display: none !important;
+      }
+
+      .card, header.dashboard-header, .stat-card, footer.dashboard-footer, .banner-disclaimer {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid !important;
+        margin-bottom: 10px;
+        padding: 14px !important;
+      }
+
+      .analysis-item, .check-item, .glossary-box {
+        background: #f8fafc !important;
+        color: #0f172a !important;
+        border: 1px solid #e2e8f0 !important;
+        page-break-inside: avoid !important;
+      }
+
+      .analysis-title, .modal-title, .card-title, h1, h4 {
+        color: #0f172a !important;
+      }
+
+      .analysis-desc, .check-content p, .glossary-list, p {
+        color: #334155 !important;
+      }
+
+      .latest-price {
+        color: #0f172a !important;
+        font-size: 1.8rem !important;
+      }
+
+      .badge, .tag {
+        border-width: 1px !important;
+        font-weight: 700 !important;
+      }
+
+      .badge-fact {
+        background: #e0f2fe !important;
+        color: #0369a1 !important;
+        border-color: #7dd3fc !important;
+      }
+
+      .badge-ai {
+        background: #f3e8ff !important;
+        color: #7e22ce !important;
+        border-color: #d8b4fe !important;
+      }
+
+      .badge-unverified {
+        background: #fef3c7 !important;
+        color: #b45309 !important;
+        border-color: #fde68a !important;
+      }
+
+      .chip {
+        background: #f1f5f9 !important;
+        color: #0284c7 !important;
+        border-color: #cbd5e1 !important;
+      }
+
+      .chart-container {
+        height: 230px !important;
+      }
+
+      h1, h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Action Toolbar -->
+    <div class="action-toolbar" id="toolbar">
+      <div class="toolbar-info">
+        <span>📄 <strong>엔비디아 주식 대시보드</strong> (인쇄 & PDF 저장 지원)</span>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="handlePrintOrPdf()">
+          🖨️ 인쇄 / PDF 저장
+        </button>
+        <button class="btn btn-secondary" onclick="openPdfHelp()">
+          ❓ PDF 저장 방법 안내
+        </button>
+      </div>
+    </div>
+
+    <!-- Top Notice Banner -->
+    <div class="banner-disclaimer">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span>ℹ️ <strong>대시보드 안내</strong>: 본 화면은 <strong>AI 초안</strong>으로 생성되었으며 <strong>저장된 수집 자료 기준</strong>(2026-11-13 종가)입니다.</span>
+      </div>
+      <div class="banner-tags">
+        <span class="tag tag-ai">AI 초안</span>
+        <span class="tag tag-saved">저장 자료 기준</span>
+        <span class="tag tag-warning">실시간 시세 아님</span>
+      </div>
+    </div>
+
+    <!-- Header: Company & Price Summary -->
+    <header class="dashboard-header">
+      <div class="company-title-area">
+        <div class="nvidia-logo-badge">n</div>
+        <div class="company-titles">
+          <h1>엔비디아 (NVIDIA Corporation)</h1>
+          <div class="company-meta">
+            <span>거래소: <strong class="chip">NASDAQ</strong></span>
+            <span>종목코드: <strong class="chip">NVDA</strong></span>
+            <span>통화: <strong>USD ($)</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="price-summary-box">
+        <div class="latest-price" id="latest-price-display">
+          $162.14 <span class="price-currency">USD</span>
+        </div>
+        <div style="margin-top: 4px;">
+          <span class="price-change change-down" id="latest-change-display">
+            ▼ -$4.05 (-2.44%) 전일 대비
+          </span>
+        </div>
+        <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
+          자료 기준일: 2026년 11월 13일 정규장 종가
+        </div>
+      </div>
+    </header>
+
+    <!-- Key Stats Meta Bar -->
+    <div class="meta-bar">
+      <div class="stat-card">
+        <div class="label">
+          <span>1개월 최고 종가</span>
+          <span class="badge badge-fact">사실</span>
+        </div>
+        <div class="value">$228.52</div>
+        <div class="subtext">2026-10-13 기록</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">
+          <span>1개월 최저 종가</span>
+          <span class="badge badge-fact">사실</span>
+        </div>
+        <div class="value">$162.14</div>
+        <div class="subtext">2026-11-13 (최근일)</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">
+          <span>1개월 등락률</span>
+          <span class="badge badge-fact">사실</span>
+        </div>
+        <div class="value" style="color: var(--down-red);">-28.36%</div>
+        <div class="subtext">최고점 대비 -29.05%</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">
+          <span>추정 시가총액</span>
+          <span class="badge badge-unverified">미확인</span>
+        </div>
+        <div class="value">~$3.95T</div>
+        <div class="subtext">약 3조 9,500억 달러 (확인 필요)</div>
+      </div>
+    </div>
+
+    <!-- Company Introduction Card -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">🏢 1. 회사 소개 (초보자를 위한 가이드)</h2>
+        <span class="badge badge-fact">공시 및 공식 정보 사실</span>
+      </div>
+      <p style="color: #cbd5e1; font-size: 0.94rem; margin-bottom: 12px;">
+        엔비디아(NVIDIA Corporation)는 1993년에 설립된 미국의 글로벌 테크 기업으로, 원래는 컴퓨터 3D 그래픽을 구현하는 <strong>GPU(그래픽 처리장치)</strong>를 개발하던 기업입니다. 오늘날에는 인공지능(AI), 딥러닝, 슈퍼컴퓨팅, 데이터센터의 핵심 연산 칩과 소프트웨어 생태계(CUDA)를 공급하며 글로벌 시가총액 최상위권의 핵심 AI 인프라 기업으로 평가받고 있습니다.
+      </p>
+
+      <div class="glossary-box">
+        <div class="glossary-title">💡 초보 투자자를 위한 핵심 개념 2가지</div>
+        <div class="glossary-list">
+          <div><strong>• GPU(Graphics Processing Unit):</strong> 수천 개의 코어로 대량의 데이터를 동시 병렬 처리하는 장치로, 복잡한 인공지능 연산의 표준 두뇌 역할을 수행합니다.</div>
+          <div><strong>• 데이터센터 AI 가속기:</strong> 빅테크(MS, 구글, 메타, 아마존 등)가 대규모 클라우드 서버 구축 시 수만 장씩 대량 구매하는 고부가가치 AI 전용 칩셋입니다.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stock Price Chart Card -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">📈 2. 최근 1개월 종가 추이 차트 (2026.10.12 ~ 2026.11.13)</h2>
+        <div>
+          <span class="badge badge-fact">수집된 종가 사실</span>
+        </div>
+      </div>
+      
+      <div class="chart-container" id="chart-wrapper">
+        <canvas id="nvdaChart"></canvas>
+      </div>
+
+      <div class="svg-chart-wrapper" id="svg-fallback-chart"></div>
+
+      <div class="chart-note">
+        * 일별 종가(Closing Price, USD) 기준. 마우스/터치 시 상세 가격 툴팁이 활성화됩니다.
+      </div>
+    </section>
+
+    <!-- Core Summary & AI Interpretation -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">🔍 3. 최근 1개월 핵심 요약 및 동향</h2>
+        <div style="display: flex; gap: 6px;">
+          <span class="badge badge-fact">수치 사실</span>
+          <span class="badge badge-ai">AI 해석</span>
+        </div>
+      </div>
+
+      <div class="analysis-grid">
+        <div class="analysis-item">
+          <div class="analysis-header">
+            <span class="analysis-title">📊 1개월 가격 조정 및 변동성</span>
+            <span class="badge badge-fact">사실</span>
+          </div>
+          <div class="analysis-desc">
+            10월 중순 $220~$228 선에서 횡보하던 주가는 11월 들어 하락세가 심화되며 11월 5일 하루 만에 -9.26% 급락을 겪었습니다. 최근 11월 13일 종가는 $162.14로 기간 내 최저점을 기록했습니다.
+          </div>
+        </div>
+
+        <div class="analysis-item">
+          <div class="analysis-header">
+            <span class="analysis-title">🤖 AI 시장 기대치와 밸류에이션 부담</span>
+            <span class="badge badge-ai">AI 해석</span>
+          </div>
+          <div class="analysis-desc">
+            AI 칩 시장의 독점적 지위는 여전히 견고하나, 단기간 급등에 따른 밸류에이션(기업가치 평가) 부담과 대형 테크 기업들의 자체 칩 개발(커스텀 ASIC) 및 투자 속도 조절 우려가 복합적으로 차익실현 매물을 유발한 것으로 해석됩니다.
+          </div>
+        </div>
+
+        <div class="analysis-item">
+          <div class="analysis-header">
+            <span class="analysis-title">📉 단기 지지선 테스트</span>
+            <span class="badge badge-ai">AI 해석</span>
+          </div>
+          <div class="analysis-desc">
+            최근 $160선 초반까지 하락하며 52주 신저가 범위($148~$150대)에 근접하고 있습니다. 고점 대비 약 29% 하락한 상태로, 기술적 반등 시도 또는 추가 조정 여부가 주요 관전 포인트입니다.
+          </div>
+        </div>
+
+        <div class="analysis-item">
+          <div class="analysis-header">
+            <span class="analysis-title">⚡ 고변동성 대형 기술주 특성</span>
+            <span class="badge badge-ai">AI 해석</span>
+          </div>
+          <div class="analysis-desc">
+            하루 변동폭이 ±4~9%에 이를 정도로 높은 변동성을 보입니다. 초보 투자자는 일별 급등락에 일희일비하기보다는 분할 매수 및 장기 관점의 접근이 필요합니다.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- What to Check Next (Checkpoints) -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">📋 4. 초보자가 더 확인해야 할 체크포인트</h2>
+        <span class="badge badge-unverified">추가 확인 필요</span>
+      </div>
+
+      <ul class="check-list">
+        <li class="check-item">
+          <div class="check-icon">📅</div>
+          <div class="check-content">
+            <h4>차기 실적 발표일 및 가이던스 <span class="badge badge-unverified">확인 필요</span></h4>
+            <p>엔비디아의 분기 매출 성장률과 차세대 GPU 아키텍처 출시 물량 가이던스가 시장 예상치를 충족하는지 직접 미국 SEC 공시(10-Q) 및 공식 IR 캘린더에서 재확인이 필요합니다.</p>
+          </div>
+        </li>
+
+        <li class="check-item">
+          <div class="check-icon">☁️</div>
+          <div class="check-content">
+            <h4>빅테크 CAPEX(설비투자) 계획 <span class="badge badge-unverified">확인 필요</span></h4>
+            <p>엔비디아의 주 고객사인 마이크로소프트(MSFT), 구글(GOOGL), 메타(META), 아마존(AMZN)이 AI 인프라 자본 지출을 계속 확대할지 여부를 모니터링해야 합니다.</p>
+          </div>
+        </li>
+
+        <li class="check-item">
+          <div class="check-icon">⚖️</div>
+          <div class="check-content">
+            <h4>각국 반독점 조사 및 수출 규제 리스크 <span class="badge badge-unverified">확인 필요</span></h4>
+            <p>미국 상무부의 첨단 반도체 대중국 수출 제한 조치 및 규제 당국의 AI 칩 번들링 반독점 조사 진행 상황을 반드시 확인해야 합니다.</p>
+          </div>
+        </li>
+
+        <li class="check-item">
+          <div class="check-icon">💵</div>
+          <div class="check-content">
+            <h4>환율(USD/KRW) 영향 <span class="badge badge-ai">AI 팁</span></h4>
+            <p>국내 투자자는 미국 주식 매매 시 달러 환율 변동에 따라 원화 환산 수익률이 달라집니다. 원/달러 환율 추이도 함께 점검하세요.</p>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Source, Metadata & Provenance Footer -->
+    <footer class="dashboard-footer">
+      <div class="footer-row">
+        <div><strong>기업명:</strong> NVIDIA Corporation (엔비디아)</div>
+        <div><strong>거래소:</strong> NASDAQ (미국 나스닥)</div>
+        <div><strong>종목코드:</strong> NVDA</div>
+        <div><strong>표시 통화:</strong> USD ($)</div>
+      </div>
+
+      <div class="footer-row">
+        <div><strong>자료 기준일:</strong> 2026-11-13 (미국 현지 정규장 마감 종가)</div>
+        <div><strong>수집·저장 일시:</strong> 2026-11-14 (로컬 파일: <a href="nvda_stock_data.json" class="ext-link">nvda_stock_data.json</a>)</div>
+        <div><strong>데이터 출처:</strong> TwelveData, StockAnalysis, Investing.com 공개 시세</div>
+      </div>
+
+      <div class="footer-row">
+        <div style="width: 100%;">
+          <strong>정보 구분 기준:</strong>
+          <div class="legend-box">
+            <span class="badge badge-fact">사실</span> : 거래소 공식 일별 종가, 과거 확정 거래 기록 등 객관적 사실
+            <span class="badge badge-ai">AI 해석</span> : 가격 추세, 시장 배경, 투자 유의점에 대한 모델 분석 요약
+            <span class="badge badge-unverified">미확인 / 확인 필요</span> : 실시간 미확정 수치, 차기 실적일, 규제 리스크 등 검증 요망 사항
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size: 0.74rem; color: #64748b; line-height: 1.4; margin-top: 4px;">
+        ※ 주의사항: 본 리포트는 저장된 과거 공개 시세 데이터를 바탕으로 작성된 AI 초안 리포트이며 실시간 호가 및 시세를 반영하지 않습니다. 본 문서는 정보 제공 목적이며 금융 투자 상품의 매수·매도를 추천하지 않습니다.
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Modal for PDF manual guide -->
+  <div class="modal-backdrop" id="pdfModal" onclick="closePdfHelp(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">📑 PDF 직접 저장 가이드 (Chrome / Edge / Safari)</div>
+        <button onclick="closePdfHelp()" style="background:none; border:none; color:#94a3b8; font-size:1.3rem; cursor:pointer;">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>웹 브라우저의 내장 인쇄 기능을 사용하면 별도 프로그램 설치 없이 깔끔한 PDF로 저장하실 수 있습니다.</p>
+        <ol class="step-list">
+          <li>상단의 <strong>[🖨️ 인쇄 / PDF 저장]</strong> 버튼을 누르거나 키보드 <strong>Ctrl + P</strong> (Mac은 Cmd + P)를 누릅니다.</li>
+          <li>인쇄 설정 창에서 <strong>'대상(프린터)'</strong>을 <strong>[PDF로 저장]</strong> 또는 <strong>[Microsoft Print to PDF]</strong>로 선택합니다.</li>
+          <li><strong>'설정 더보기'</strong>를 클릭하고 <strong>[배경 그래픽]</strong> 항목에 체크합니다 (배경 및 배지 색상이 온전히 유지됩니다).</li>
+          <li>페이지 레이아웃은 <strong>[세로]</strong>, 여백은 <strong>[기본]</strong> 또는 <strong>[최소]</strong>로 설정합니다.</li>
+          <li>우측 하단의 <strong>[저장]</strong> 버튼을 눌러 원하는 폴더에 PDF로 저장합니다.</li>
+        </ol>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closePdfHelp()">닫기</button>
+        <button class="btn btn-primary" onclick="closePdfHelp(); window.print();">바로 인쇄창 열기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const stockData = {
+      dates: [
+        "10/12", "10/13", "10/14", "10/15", "10/16",
+        "10/19", "10/20", "10/21", "10/22", "10/23",
+        "10/26", "10/27", "10/28", "10/29", "10/30",
+        "11/02", "11/03", "11/04", "11/05", "11/06",
+        "11/09", "11/10", "11/11", "11/12", "11/13"
+      ],
+      fullDates: [
+        "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16",
+        "2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23",
+        "2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30",
+        "2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06",
+        "2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13"
+      ],
+      prices: [
+        226.32, 228.52, 221.30, 217.23, 214.13,
+        217.09, 216.47, 221.97, 212.21, 210.96,
+        216.00, 217.94, 215.38, 213.66, 204.64,
+        202.06, 206.69, 200.13, 181.60, 186.64,
+        178.67, 168.89, 173.73, 166.19, 162.14
+      ]
+    };
+
+    function initChart() {
+      if (typeof Chart !== 'undefined') {
+        const ctx = document.getElementById('nvdaChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(118, 185, 0, 0.45)');
+        gradient.addColorStop(0.7, 'rgba(118, 185, 0, 0.05)');
+        gradient.addColorStop(1, 'rgba(118, 185, 0, 0.00)');
+
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: stockData.dates,
+            datasets: [{
+              label: '엔비디아 (NVDA) 종가 ($)',
+              data: stockData.prices,
+              borderColor: '#76b900',
+              borderWidth: 2.8,
+              pointBackgroundColor: '#76b900',
+              pointBorderColor: '#0f172a',
+              pointBorderWidth: 1.5,
+              pointRadius: 3.5,
+              pointHoverRadius: 6.5,
+              backgroundColor: gradient,
+              fill: true,
+              tension: 0.28
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 600 },
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: {
+                display: true,
+                labels: {
+                  color: '#94a3b8',
+                  font: { size: 12, family: '-apple-system, sans-serif' }
+                }
+              },
+              tooltip: {
+                backgroundColor: '#1e293b',
+                titleColor: '#f8fafc',
+                bodyColor: '#38bdf8',
+                borderColor: '#334155',
+                borderWidth: 1,
+                padding: 10,
+                callbacks: {
+                  title: function(items) {
+                    const idx = items[0].dataIndex;
+                    return '일자: ' + stockData.fullDates[idx];
+                  },
+                  label: function(item) {
+                    return ' 종가: $' + item.raw.toFixed(2) + ' USD';
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(51, 65, 85, 0.35)', drawBorder: false },
+                ticks: { color: '#94a3b8', maxRotation: 45, font: { size: 11 } }
+              },
+              y: {
+                min: 150,
+                max: 240,
+                grid: { color: 'rgba(51, 65, 85, 0.45)', drawBorder: false },
+                ticks: {
+                  color: '#94a3b8',
+                  font: { size: 11 },
+                  callback: function(val) { return '$' + val; }
+                }
+              }
+            }
+          }
+        });
+      } else {
+        renderSvgFallback();
+      }
+    }
+
+    function renderSvgFallback() {
+      document.getElementById('chart-wrapper').style.display = 'none';
+      const fallbackBox = document.getElementById('svg-fallback-chart');
+      fallbackBox.style.display = 'block';
+      
+      const width = 800;
+      const height = 240;
+      const padL = 45, padR = 20, padT = 20, padB = 40;
+      const minY = 150, maxY = 240;
+      
+      const pts = stockData.prices.map((p, i) => {
+        const x = padL + (i / (stockData.prices.length - 1)) * (width - padL - padR);
+        const y = height - padB - ((p - minY) / (maxY - minY)) * (height - padT - padB);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      });
+
+      const polylinePoints = pts.join(' ');
+      const areaPoints = `${padL},${height - padB} ${polylinePoints} ${width - padR},${height - padB}`;
+
+      fallbackBox.innerHTML = `
+        <svg viewBox="0 0 ${width} ${height}" style="width:100%; height:auto; overflow:visible;">
+          <defs>
+            <linearGradient id="svgGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#76b900" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#76b900" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+          <line x1="${padL}" y1="${padT}" x2="${width-padR}" y2="${padT}" stroke="#334155" stroke-dasharray="4"/>
+          <line x1="${padL}" y1="${height/2}" x2="${width-padR}" y2="${height/2}" stroke="#334155" stroke-dasharray="4"/>
+          <line x1="${padL}" y1="${height-padB}" x2="${width-padR}" y2="${height-padB}" stroke="#475569"/>
+          
+          <text x="${padL - 8}" y="${padT + 4}" fill="#94a3b8" font-size="11" text-anchor="end">$240</text>
+          <text x="${padL - 8}" y="${height/2 + 4}" fill="#94a3b8" font-size="11" text-anchor="end">$195</text>
+          <text x="${padL - 8}" y="${height - padB + 4}" fill="#94a3b8" font-size="11" text-anchor="end">$150</text>
+          
+          <polygon points="${areaPoints}" fill="url(#svgGrad)" />
+          <polyline points="${polylinePoints}" fill="none" stroke="#76b900" stroke-width="3" />
+          
+          <text x="${padL}" y="${height - 15}" fill="#94a3b8" font-size="11">10/12 ($226.3)</text>
+          <text x="${width/2}" y="${height - 15}" fill="#94a3b8" font-size="11" text-anchor="middle">10/28 ($215.4)</text>
+          <text x="${width - padR}" y="${height - 15}" fill="#ef4444" font-size="11" text-anchor="end">11/13 ($162.1)</text>
+        </svg>
+      `;
+    }
+
+    function handlePrintOrPdf() {
+      window.print();
+    }
+
+    function openPdfHelp() {
+      document.getElementById('pdfModal').style.display = 'flex';
+    }
+
+    function closePdfHelp(e) {
+      document.getElementById('pdfModal').style.display = 'none';
+    }
+
+    window.addEventListener('DOMContentLoaded', initChart);
+  </script>
+</body>
+</html>
